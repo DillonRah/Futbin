@@ -24,8 +24,8 @@ def flatten_list(list_):
         
     return output
 
-for i in range(31):
-    example = soup.find_all("tr")[2*i] # Mbappé
+for i in range(62):
+    example = soup.find_all("tr")[i] # Mbappé
     attributes = [td.get_text() for td in example.find_all("td")]
     attributes = [i.strip() for i in attributes]
     attributes = flatten_list([i.split("\n") for i in attributes])
@@ -33,9 +33,13 @@ for i in range(31):
     attributes = [item.strip() for item in attributes if item.strip() != ""]
     players.append(attributes)
 
-print(players)
+#print(players)
+#print(....,end=)
+def printprices(players):
+    for player in players:
+        if(len(player) != 0 and ord(player[5][0]) < 65 and len(player[5]) != 0):
+            print(player[5] + ' ' + player[6])        #print(player[0] + '\t' + player[6])
+        elif (len(player) != 0 and len(player[6]) != 0):
+            print(player[6])
 
-for player in players:
-    if(len(player) != 0):
-        print(player[5])
-        #print(player[0] + '\t' + player[6])
+printprices(players)
