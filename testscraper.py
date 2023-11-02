@@ -1,12 +1,8 @@
-import bs4
 import requests 
 import csv
 from urllib.request import Request, urlopen
 from bs4 import BeautifulSoup
-
-
-link = "https://www.futbin.com/popular"
-#url = "https://stackoverflow.com/questions/13779526/finding-a-substring-within-a-list-in-python"
+import time
 
 def soup(url):
     headers = {'User-Agent': 'Mozilla/5.0'}
@@ -14,42 +10,6 @@ def soup(url):
     response = urlopen(req)
     html = response.read()
     return BeautifulSoup(html, 'html.parser')
-
-site = soup(link)
-
-players = []
-
-for link in site.find_all('a'):
-    players.append(link.get('href'))
-#print(soup.prettify())
-
-sub = "24/player/"
-links = []
-
-for player in players:
-    if player is None:
-        players.remove(player)
-    elif sub in player:
-        #print(player)
-        links.append("https://www.futbin.com" + player)
-
-# this code works and gets all of the popular players and their links
-# need to now open each of those links - get the price and store that in a dictionary with their price and the player name
-
-playerandprices = {}
-listofplayers = []
-
-for link in links:
-    s = ""
-    count = 0
-    for letter in link:
-        if letter == '/':
-            count += 1
-        if count == 6:
-            s += letter
-    listofplayers.append(s[1:])
-
-playerprices = []
 
 def flatten_list(list_):
     output = []
@@ -77,12 +37,72 @@ def prices(players):
             s = (player[5] + ' ' + player[6])        #print(player[0] + '\t' + player[6])
         elif (len(player) != 0 and len(player[6]) != 0):
             s = (player[6])
-    
     return s
 
+def getRarity(site):
+    site = soup(site)
+    names = (site.find_all(class_="header_name full-name"))
+    name = str(names[0])
+    name = name[36:] # just parsing the string
+    index = name.find('-')
+    if index != -1:
+        temp = name[index + 1:]
+        index = temp.find(' ')
+        rarity = temp[:index]
+    else:
+        rarity = "Rare Gold" # unless its a bronze or something or a gold non rare but realistically this is an edge case so we can try validate it later
+    return rarity
+
+popularlink = "https://www.futbin.com/popular" # The main site I will be scraping from (just the list of the most popular players on fifa) - equivilant to liquidity?
+popularsite = soup(popularlink) # The soup object of the popular site
+hrefs = [] #href links of the players
+substring = "24/player/" #substring to differentiate the players from the random links
+links = [] #parsed href links of the players
+listofplayers = [] #list of strings of all of the players
+playerprices = [] #list of strings of all of the player prices
+cardrarity = [] #list of strings of all of the player card rarities
+
+for link in popularsite.find_all('a'):
+    hrefs.append(link.get('href'))
+
+for link in hrefs:
+    if link is None:
+        hrefs.remove(link)
+    elif substring in link:
+        #print(player)
+        links.append("https://www.futbin.com" + link)
+
+for link in links:
+    s = ""
+    count = 0
+    for letter in link:
+        if letter == '/':
+            count += 1
+        if count == 6:
+            s += letter
+    listofplayers.append(s[1:])
+
 for count, player in enumerate(listofplayers):
-    while count < 10:
+    if count < 10:
         site = soup("https://www.futbin.com/players?page=1&search=" + player)
-        #print("https://www.futbin.com/players?page=1&search=" + player)
         players = scrapeplayerdata(site)
-        print(prices(players))
+        playerprices.append((prices(players)))
+        time.sleep(0.1) # to not annoy futbin and get banned (add a delay to act as a real person)
+        cardrarity.append(getRarity(links[count]))
+        
+print(cardrarity)
+
+#for count, price in enumerate(playerprices):
+#    print(listofplayers[count] + "\t" + price)
+
+#Need to make a way to find what card is actually popular
+
+csv_file_name = "spreadsheet-of-popular-players.csv"
+
+with open(csv_file_name, mode="w", newline='') as file:
+    writer = csv.writer(file) # Create a CSV writer object (idk what this means)
+    writer.writerow(["Player", "Price", "Card"])
+    for count, price in enumerate(playerprices):
+        writer.writerow([listofplayers[count], price, cardrarity[count]])
+
+print("Done.")
