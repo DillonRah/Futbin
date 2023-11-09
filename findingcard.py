@@ -6,7 +6,7 @@ from urllib.request import Request, urlopen
 from bs4 import BeautifulSoup
 
 
-link = "https://www.futbin.com/players?page=1&search=kolo-muani"
+link = "https://www.futbin.com/24/player/19926/mykhailo-mudryk"
 #url = "https://stackoverflow.com/questions/13779526/finding-a-substring-within-a-list-in-python"
 
 def soup(url):
@@ -48,5 +48,6 @@ def getRarity(site):
         rarity = "Rare Gold" # unless its a bronze or something or a gold non rare but realistically this is an edge case so we can try validate it later
     return rarity
 
+print(getRarity(soup(site)))
 # now update the csv file?
 # make a disctionary for futbin acronyms and the actual words e.g RTTK -> Road to the Knockout
