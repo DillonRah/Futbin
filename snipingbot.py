@@ -12,6 +12,14 @@ import keyboard
 #search = 1728,986
 #setbuy = 1514,912
 
+class Player:
+    def __init__(self, name, price, rarity, percentage, fullname):
+        self.name = name
+        self.price = price
+        self.rarity = rarity
+        self.percentage = percentage
+        self.fullname = fullname
+
 def click(x,y):
     win32api.SetCursorPos((x,y))
     win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN,0,0)
@@ -24,7 +32,6 @@ def resetprice():
     win32api.keybd_event(0x08, 0,0,0)
     click(1456,759) # black space to clear
 
-time.sleep(2)
 def sniping():
     while keyboard.is_pressed('q') == False:
         time.sleep(0.1)
@@ -50,7 +57,24 @@ def sniping():
         time.sleep(0.5) 
         click(1763,394)
         pyautogui.dragTo(1763,576, 0.5, button='left')
-    
-    return
 
-sniping()
+    return
+   
+
+listofPlayers = []
+SnipingPlayers = []
+
+def snipingbot(budget):
+    listofViablePlayers = []
+    for player in listofPlayers:
+        if player.price < budget / 5: # Dont want to spend more than 20% of budget on one player - can change later
+            listofViablePlayers.append(player)
+    return listofViablePlayers
+
+def searchplayer(name, price, xcoord, ycoord):
+    click(xcoord, ycoord)
+    keyboard.write(name)
+    click(1398,925) # change these values (just select the first player that comes up etc.)
+    click(1763,394) # click the scroll bar
+    pyautogui.dragTo(1763,576, 0.5, button='left') # drag down
+

@@ -1,1 +1,11 @@
-Player,Price,Percentage,Rarity,Max Buy,Min Profit
+Card Name,Price,Rarity,Percentage,Max Buy,Min Profit,Full Name
+rapinoe,102000.0,PREMIUM SBC,0,909000.0,50500.0,megan-rapinoe
+lizarazu,0.0,HEROES,0,909000.0,50500.0,bixente-lizarazu
+bacha,172550.0,UCL W,0,909000.0,50500.0,selma-bacha
+krieger,43800.0,PREMIUM SBC,0,909000.0,50500.0,ali-krieger
+van-dijk,539000.0,Rare Gold,4.77%,909000.0,50500.0,virgil-van-dijk
+junior,693000.0,Rare Gold,0,909000.0,50500.0,vinicius-junior
+salah,788000.0,Rare Gold,0,909000.0,50500.0,mohamed-salah
+morientes,134000.0,Triple Threat Hero,0,909000.0,50500.0,morientes
+mbappe,4600000.0,Rare Gold,0,909000.0,50500.0,kylian-mbappe
+de-bruyne,1010000.0,Rare Gold,0,909000.0,50500.0,kevin-de-bruyne

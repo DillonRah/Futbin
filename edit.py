@@ -4,6 +4,14 @@ from urllib.request import Request, urlopen
 from bs4 import BeautifulSoup
 import time
 
+class Player:
+    def __init__(self, name, price, rarity, percentage, fullname):
+        self.name = name
+        self.price = price
+        self.rarity = rarity
+        self.percentage = percentage
+        self.fullname = fullname
+
 def soup(url):
     headers = {'User-Agent': 'Mozilla/5.0'}
     req = Request(url, headers=headers)
@@ -57,9 +65,12 @@ popularsite = soup(popularlink) # The soup object of the popular site
 hrefs = [] #href links of the players
 substring = "24/player/" #substring to differentiate the players from the random links
 links = [] #parsed href links of the players
-listofplayers = [] #list of strings of all of the players
-playerprices = [] #list of strings of all of the player prices
+playernames = [] #list of strings of  names of all of the players
+nonparsedplayerprices = [] #list of strings of all of the unparsed player prices
+playerprices = [] #list of strings of all of the parsed player prices
 cardrarity = [] #list of strings of all of the player card rarities
+listofpercentages = []
+listofplayers = []
 
 for link in popularsite.find_all('a'):
     hrefs.append(link.get('href'))
@@ -81,38 +92,52 @@ for link in links:
             count += 1
         if count == 6:
             s += letter
-    listofplayers.append(s[1:])
+    playernames.append(s[1:])
 
-for count, player in enumerate(listofplayers):
+for count, player in enumerate(playernames):
     if count < 10:
         site = soup("https://www.futbin.com/players?page=1&search=" + player)
         players = scrapeplayerdata(site)
-        playerprices.append((prices(players)))
+        nonparsedplayerprices.append((prices(players)))
         time.sleep(0.1) # to not annoy futbin and get banned (add a delay to act as a real person)
         cardrarity.append(getRarity(links[count]))
 
-listofpercentages = []
-for price in playerprices:
+
+for count, price in enumerate(nonparsedplayerprices):
     index = price.find(' ')
     if index != -1:
         listofpercentages.append(price[index + 1:])
-        price = price[:index]
+        nonparsedplayerprices[count] = price[:index]
     else:
         listofpercentages.append(0)
 
-#print(cardrarity)
+for price in nonparsedplayerprices:
+    s.replace(" ", "")
+    if price[-1] == 'K':
+        playerprices.append(float(price[:-1]) * 1000)
+    elif price[-1] == 'M':
+        playerprices.append(float(price[:-1]) * 1000000)
+    else:
+        playerprices.append(float(price))
 
-#for count, price in enumerate(playerprices):
-#    print(listofplayers[count] + "\t" + price)
-
-#Need to make a way to find what card is actually popular
+for count, price in enumerate(playerprices):
+    index = playernames[count].find('-')
+    if index != -1:
+        x = Player(playernames[count][index + 1:], price, cardrarity[count], listofpercentages[count], playernames[count])
+    else:
+        x = Player(playernames[count], price, cardrarity[count], listofpercentages[count], playernames[count])
+    listofplayers.append(x)
 
 csv_file_name = "spreadsheet-of-popular-players.csv"
-    
-with open(csv_file_name, mode="w", newline='') as file:
-    writer = csv.writer(file) # Create a CSV writer object (idk what this means)
-    writer.writerow(["Player", "Price", "Percentage", "Rarity", "Max Buy", "Min Profit"])
-    for count, price in enumerate(playerprices):
-        writer.writerow([listofplayers[count], price, listofpercentages[count], cardrarity[count], float(price[:-1]) * 0.9, float(price[:-1]) * 0.05])
+
+def makingcsv(spreadsheetname, players):
+    with open(spreadsheetname, mode="w", newline='') as file:
+        writer = csv.writer(file) # Create a CSV writer object (idk what this means)
+        writer.writerow(["Card Name", "Price", "Rarity", "Percentage", "Max Buy", "Min Profit", "Full Name"])
+        for player in players:
+            writer.writerow([player.name, player.price, player.rarity, player.percentage, price * 0.9, price * 0.05, player.fullname])
+
+
+makingcsv(csv_file_name, listofplayers)
 
 print("Done.")
