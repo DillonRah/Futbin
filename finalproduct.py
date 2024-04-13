@@ -2,8 +2,9 @@ import chess
 import time
 import requests
 import json
+import unittest
+import chess.engine
 
-board = chess.Board()
 movehistory =[]
 totalnumberof = {}
 pieceValues = {
@@ -21,7 +22,6 @@ def get_token(filename):
     with open(filename, 'r') as file:
         return file.read().strip()
 
-#Matrices for piece-square tables NOT MY VALUES - from: https://www.chessprogramming.org/Simplified_Evaluation_Function
 class PieceSquareTable:
     def __init__(self, values):
         if len(values) != 64:
@@ -34,64 +34,128 @@ class PieceSquareTable:
             raise ValueError("Square index out of range")
         return self.values[square]
 
+board = chess.Board()
 # Define your piece square table
 pawnsPSQ = PieceSquareTable([
-      0,   0,   0,   0,   0,   0,  0,   0,
-     98, 134,  61,  95,  68, 126, 34, -11,
-     -6,   7,  26,  31,  65,  56, 25, -20,
-    -14,  13,   6,  21,  23,  12, 17, -23,
-    -27,  -2,  -5,  12,  17,   6, 10, -25,
-    -26,  -4,  -4, -10,   3,   3, 33, -12,
-    -35,  -1, -20, -23, -15,  24, 38, -22,
-      0,   0,   0,   0,   0,   0,  0,   0,])
+    0,  0,  0,  0,  0,  0,  0,  0,
+    50, 50, 50, 50, 50, 50, 50, 50,
+    10, 10, 20, 30, 30, 20, 10, 10,
+    5,  5, 10, 25, 25, 10,  5,  5,
+    0,  0,  0, 20, 20,  0,  0,  0,
+    5, -5,-10,  0,  0,-10, -5,  5,
+    5, 10, 10,-20,-20, 10, 10,  5,
+    0,  0,  0,  0,  0,  0,  0,  0])
 
 knightsPSQ = PieceSquareTable([
-    -167, -89, -34, -49,  61, -97, -15, -107,
-     -73, -41,  72,  36,  23,  62,   7,  -17,
-     -47,  60,  37,  65,  84, 129,  73,   44,
-      -9,  17,  19,  53,  37,  69,  18,   22,
-     -13,   4,  16,  13,  28,  19,  21,   -8,
-     -23,  -9,  12,  10,  19,  17,  25,  -16,
-     -29, -53, -12,  -3,  -1,  18, -14,  -19,
-    -105, -21, -58, -33, -17, -28, -19,  -23,])
+    -50,-40,-30,-30,-30,-30,-40,-50,
+    -40,-20,  0,  0,  0,  0,-20,-40,
+    -30,  0, 10, 15, 15, 10,  0,-30,
+    -30,  5, 15, 20, 20, 15,  5,-30,
+    -30,  0, 15, 20, 20, 15,  0,-30,
+    -30,  5, 10, 15, 15, 10,  5,-30,
+    -40,-20,  0,  5,  5,  0,-20,-40,
+    -50,-40,-30,-30,-30,-30,-40,-50,])
 bishopsPSQ = PieceSquareTable([
-    -29,   4, -82, -37, -25, -42,   7,  -8,
-    -26,  16, -18, -13,  30,  59,  18, -47,
-    -16,  37,  43,  40,  35,  50,  37,  -2,
-     -4,   5,  19,  50,  37,  37,   7,  -2,
-     -6,  13,  13,  26,  34,  12,  10,   4,
-      0,  15,  15,  15,  14,  27,  18,  10,
-      4,  15,  16,   0,   7,  21,  33,   1,
-    -33,  -3, -14, -21, -13, -12, -39, -21,])
+    -20,-10,-10,-10,-10,-10,-10,-20,
+    -10,  0,  0,  0,  0,  0,  0,-10,
+    -10,  0,  5, 10, 10,  5,  0,-10,
+    -10,  5,  5, 10, 10,  5,  5,-10,
+    -10,  0, 10, 10, 10, 10,  0,-10,
+    -10, 10, 10, 10, 10, 10, 10,-10,
+    -10,  5,  0,  0,  0,  0,  5,-10,
+    -20,-10,-10,-10,-10,-10,-10,-20,])
 rooksPSQ = PieceSquareTable([
-     32,  42,  32,  51, 63,  9,  31,  43,
-     27,  32,  58,  62, 80, 67,  26,  44,
-     -5,  19,  26,  36, 17, 45,  61,  16,
-    -24, -11,   7,  26, 24, 35,  -8, -20,
-    -36, -26, -12,  -1,  9, -7,   6, -23,
-    -45, -25, -16, -17,  3,  0,  -5, -33,
-    -44, -16, -20,  -9, -1, 11,  -6, -71,
-    -19, -13,   1,  17, 16,  7, -37, -26,])
+    0,  0,  0,  0,  0,  0,  0,  0,
+    5, 10, 10, 10, 10, 10, 10,  5,
+    -5,  0,  0,  0,  0,  0,  0, -5,
+    -5,  0,  0,  0,  0,  0,  0, -5,
+    -5,  0,  0,  0,  0,  0,  0, -5,
+    -5,  0,  0,  0,  0,  0,  0, -5,
+    -5,  0,  0,  0,  0,  0,  0, -5,
+    0,  0,  0,  5,  5,  0,  0,  0])
 queensPSQ = PieceSquareTable([
-    -28,   0,  29,  12,  59,  44,  43,  45,
-    -24, -39,  -5,   1, -16,  57,  28,  54,
-    -13, -17,   7,   8,  29,  56,  47,  57,
-    -27, -27, -16, -16,  -1,  17,  -2,   1,
-     -9, -26,  -9, -10,  -2,  -4,   3,  -3,
-    -14,   2, -11,  -2,  -5,   2,  14,   5,
-    -35,  -8,  11,   2,   8,  15,  -3,   1,
-     -1, -18,  -9,  10, -15, -25, -31, -50])
+    -20,-10,-10, -5, -5,-10,-10,-20,
+    -10,  0,  0,  0,  0,  0,  0,-10,
+    -10,  0,  5,  5,  5,  5,  0,-10,
+    -5,  0,  5,  5,  5,  5,  0, -5,
+    0,  0,  5,  5,  5,  5,  0, -5,
+    -10,  5,  5,  5,  5,  5,  0,-10,
+    -10,  0,  5,  0,  0,  0,  0,-10,
+    -20,-10,-10, -5, -5,-10,-10,-20])
 kingsPSQ = PieceSquareTable([
-    -65,  23,  16, -15, -56, -34,   2,  13,
-     29,  -1, -20,  -7,  -8,  -4, -38, -29,
-     -9,  24,   2, -16, -20,   6,  22, -22,
-    -17, -20, -12, -27, -30, -25, -14, -36,
-    -49,  -1, -27, -39, -46, -44, -33, -51,
-    -14, -14, -22, -46, -44, -30, -15, -27,
-      1,   7,  -8, -64, -43, -16,   9,   8,
-    -15,  36,  12, -54,   8, -28,  24,  14])
+    -30,-40,-40,-50,-50,-40,-40,-30,
+    -30,-40,-40,-50,-50,-40,-40,-30,
+    -30,-40,-40,-50,-50,-40,-40,-30,
+    -30,-40,-40,-50,-50,-40,-40,-30,
+    -20,-30,-30,-40,-40,-30,-30,-20,
+    -10,-20,-20,-20,-20,-20,-20,-10,
+    20, 20,  0,  0,  0,  0, 20, 20,
+    20, 30, 10,  0,  0, 10, 30, 20])
 
-def calculate_score():
+test_data = [
+    {
+        "depth": 1,
+        "nodes": 8,
+        "fen": "r6r/1b2k1bq/8/8/7B/8/8/R3K2R b KQ - 3 2",
+        "solution": "e7f7"
+    },
+    {
+        "depth": 1,
+        "nodes": 8,
+        "fen": "8/8/8/2k5/2pP4/8/B7/4K3 b - d3 0 3",
+        "solution": "c4d3"
+    },
+    {
+        "depth": 1,
+        "nodes": 19,
+        "fen": "r1bqkbnr/pppppppp/n7/8/8/P7/1PPPPPPP/RNBQKBNR w KQkq - 2 2",
+        "solution": "g1f3"
+    },
+    {
+        "depth": 1,
+        "nodes": 5,
+        "fen": "r3k2r/p1pp1pb1/bn2Qnp1/2qPN3/1p2P3/2N5/PPPBBPPP/R3K2R b KQkq - 3 2",
+        "solution": "f7e6"
+    },
+    {
+        "depth": 1,
+        "nodes": 44,
+        "fen": "2kr3r/p1ppqpb1/bn2Qnp1/3PN3/1p2P3/2N5/PPPBBPPP/R3K2R b KQ - 3 2",
+        "solution": "h8h2"
+    },
+    {
+        "depth": 1,
+        "nodes": 39,
+        "fen": "rnb2k1r/pp1Pbppp/2p5/q7/2B5/8/PPPQNnPP/RNB1K2R w KQ - 3 9",
+        "solution": "d7d8r"
+    },
+    {
+        "depth": 1,
+        "nodes": 9,
+        "fen": "2r5/3pk3/8/2P5/8/2K5/8/8 w - - 5 4",
+        "solution": "c3c4"
+    },
+    {
+        "depth": 3,
+        "nodes": 62379,
+        "fen": "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8",
+        "solution": "b1c3"
+    },
+    {
+        "depth": 3,
+        "nodes": 89890,
+        "fen": "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10",
+        "solution": "c4f7"
+    },
+    {
+        "depth": 6,
+        "nodes": 1134888,
+        "fen": "3k4/3p4/8/K1P4r/8/8/8/8 b - - 0 1",
+        "solution": "d8c7"
+    }
+]
+
+def calculate_score(board):
     if board.is_checkmate():
         if board.turn:
             return float('-inf')
@@ -162,8 +226,8 @@ def read_game_state(game_id, bot_token):
             else:
                 print("Failed to connect. Check your game ID and bot token.")
                 return None
-    except Exception as e:
-        print(f"An error occurred: {e}")
+    except Exception as error:
+        print(f"An error occurred: {error}")
         return None
 
 def play_move(game_id, move, bot_token):
@@ -178,8 +242,8 @@ def play_move(game_id, move, bot_token):
         else:
             print("Failed to play move.")
             return False
-    except Exception as e:
-        print(f"An error occurred: {e}")
+    except Exception as error:
+        print(f"An error occurred: {error}")
         return False
     
 def get_masters(bot_token):
@@ -234,11 +298,11 @@ def play_last_move_on_board(game_id):
         print("Failed to retrieve last move.")
         return None
 
-def alpha_beta_pruning(alpha, beta, depth):
+def alpha_beta_pruning(alpha, beta, depth, board):
     # When the depth is 0, we run the quiescsence search which goes deeper into the earch to find the best move
     best_score = float('-inf')
     if depth == 0:
-        return quiescence_search(alpha, beta)
+        return quiescence_search(alpha, beta, board)
     
     # Checking all of the legal moves
     total_legal_moves = board.legal_moves
@@ -252,7 +316,7 @@ def alpha_beta_pruning(alpha, beta, depth):
             return beta  
     return best_score
 
-def quiescence_search(alpha, beta):
+def quiescence_search(alpha, beta, board):
     pat = calculate_score()
     if pat >= beta:
         return beta
@@ -262,44 +326,31 @@ def quiescence_search(alpha, beta):
     capture_moves = [move for move in board.legal_moves if board.is_capture(move)]
     for move in capture_moves: #checking all of the capture moves as they are the most 'dangerous'
         board.push(move)
-        score = -quiescence_search(-beta, -alpha)
+        value = -quiescence_search(-beta, -alpha, board)
         board.pop()
-        alpha = max(alpha, score)
+        alpha = max(alpha, value)
         if alpha >= beta:
             return beta  # Beta cut-off
     return alpha
 
-def find_best_move(depth): #Function to find the best move with a given depth
-    current_best_Score = float('-inf')
-    
-    # Initialize alpha and beta values for alpha-beta pruning
+def find_best_move(depth, board):
+    best_score = float('-inf')
     alpha = float('-inf')
     beta = float('inf')
+    best_move = None
     
-    # Iterate through all legal moves
-    total_legal_moves = board.legal_moves
-    for move in total_legal_moves   :
-        # Make the move on the board
+    #Check through all legal moves
+    legal_moves = board.legal_moves
+    for move in legal_moves:
         board.push(move)
-        
-        # evaluate the position by applying the alpha beta pruning algortithm
-        boardValue = -alpha_beta_pruning(-beta, -alpha, depth-1)
-        
-        # Update the best move and value if the current move yields a better value
-        if boardValue > current_best_Score:
-            current_best_Score = boardValue
-            bestMove = move
-        
-        # Update alpha if the current value is greater than alpha
-        if boardValue > alpha:
-            alpha = boardValue
-        
-        # Undo the move
+        board_value = -alpha_beta_pruning(-beta, -alpha, depth - 1, board)
+        if board_value > best_score:
+            best_score = board_value
+            best_move = move
+        alpha = max(alpha, board_value)
         board.pop()
-    
-    # Append the best move to the move history and return it
-    movehistory.append(bestMove)
-    return bestMove
+    movehistory.append(best_move)
+    return best_move
 
 def what_colour(game_data, username):
     if 'black' in game_data:
@@ -320,16 +371,16 @@ def get_value(string, bot_token):
         print("Couldn't find any games with specified string: {string}")
         return None
 
-def merge_sort(output_list):
+def merge_sort(listA):
     #base case if its a single element, return the list
-    if len(output_list) <= 1:
-        return output_list
+    if len(listA) <= 1:
+        return listA
 
     
     #split the list into two halves
-    mid = len(output_list) // 2
-    left_half = output_list[:mid]
-    right_half = output_list[mid:]
+    mid = len(listA) // 2
+    left_half = listA[:mid]
+    right_half = listA[mid:]
     
     #recursive call to apply mergesort again
     #this will continue until the two lists are of length 1
@@ -343,34 +394,34 @@ def merge_sort(output_list):
     #merge the two lists back together by comparing the elements
     while i < len(left_half) and j < len(right_half):
         if left_half[i] < right_half[j]:
-            output_list[k] = left_half[i]
+            listA[k] = left_half[i]
             i += 1
         else:
-            output_list[k] = right_half[j]
+            listA[k] = right_half[j]
             j += 1
         k += 1
     
     while i < len(left_half):
-        output_list[k] = left_half[i]
+        listA[k] = left_half[i]
         i += 1
         k += 1
     
     while j < len(right_half):
-        output_list[k] = right_half[j]
+        listA[k] = right_half[j]
         j += 1
         k += 1
     
-    #return the srorted list
-    return output_list
+    #return the sorted list
+    return listA
 
 def opening_move(colour, bot_token):
     # Assuming get_value() function returns white_values, black_values, and moves properly
     white_values = get_value("white", bot_token)
     black_values = get_value("black", bot_token)
-    moves = get_value("uci")
+    moves = get_value("uci", bot_token)
     
     ratios = [white / black for white, black in zip(white_values, black_values)]
-    sorted_ratios = sorted(ratios)
+    sorted_ratios = merge_sort(ratios)
     
     move_map = {}
     for move, ratio in zip(moves, ratios):
@@ -385,8 +436,15 @@ def opening_move(colour, bot_token):
         return None
 
 
-def play_as_white(game_id, bot_token, depth):
-    move = find_best_move(depth)
+def play_as_white(game_id, bot_token, depth, board):
+    if(len(read_game_state(game_id, bot_token)['state']['moves'].split(" ")) == 0):
+        move = opening_move("white", bot_token)
+        board.push_san(move)
+        play_move(game_id, str(move), bot_token)
+        time.sleep(1)
+        movehistory.append(move)
+        return(board)
+    move = find_best_move(int(depth), board)
     board.push(move)
     play_move(game_id, str(move), bot_token)
     time.sleep(1)
@@ -399,7 +457,14 @@ def play_as_white(game_id, bot_token, depth):
     movehistory.append(opponents_move)
     return(board)
 
-def play_as_black(game_id, bot_token, depth):
+def play_as_black(game_id, bot_token, depth, board):
+    if(len(read_game_state(game_id, bot_token)['state']['moves'].split(" ")) == 1):
+        move = opening_move("black", bot_token)
+        board.push_san(move)
+        play_move(game_id, str(move), bot_token)
+        time.sleep(1)
+        movehistory.append(move)
+        return(board)
     x = len(read_game_state(game_id, bot_token)['state']['moves'].split(" "))
     while(x == len(movehistory)):
         time.sleep(5)
@@ -407,62 +472,70 @@ def play_as_black(game_id, bot_token, depth):
     opponents_move = (read_game_state(game_id, bot_token)['state']['moves'].split(" ")[-1])
     board.push_san(opponents_move)
     movehistory.append(opponents_move)
-    move = find_best_move(depth)
+    move = find_best_move(int(depth), board)
     board.push(move)
     play_move(game_id, str(move), bot_token)
     time.sleep(3)
     return(board)
 
-def play(colour, game_id, bot_token, depth):
+def play(colour, game_id, bot_token, depth, board):
     if colour == "white":
-        return play_as_white(game_id, bot_token, depth)
+        return play_as_white(game_id, bot_token, depth, board)
     else:
-        return play_as_black(game_id, bot_token, depth)
+        return play_as_black(game_id, bot_token, depth,board)
 
 
-bot_token = get_token("tokens.txt")
-movehistory = []
-board = chess.Board()
-try:
-    depth = int(input("Welcome to Dillon Rahman's NEA.\nA chess engine written in Python. \nPlease enter the depth that will be used for the engine:\nReccomended depth: 3\n"))
-    if depth < 1:
-        print("Please enter a depth greater than 0.")
-        exit()
-    option = input("AI vs AI? (1): \nAI vs Human? (2):  \nLichess(3) \nLoad Position? (4): ")
-    if option == "2":
-        while not board.is_game_over(claim_draw=True):
-            if board.turn:
-                move = find_best_move(depth)
-                movehistory.append(move)
-                board.push(move)
-                print("\n" + str(move) + "\n")
-            else:
-                move = input("\nEnter your move: ")
-                move = board.push_san(move)
-                movehistory.append(move)
-                print("")
-                #move = find_best_move(int(depth))
-            print(board)
-        print("Checkmate by " + str(board.result()) + " in " + str(len(movehistory)) + " moves.")
-        print(movehistory)
-    elif option == "3":
-        game_id = input("Enter game ID: ")
-        colour = what_colour(read_game_state(game_id, bot_token), "dillonnea")
-        if len(read_game_state(game_id, bot_token)['state']['moves'].split(" ")) > 1:
-            print("Game has already started. Please try another game ID")
+class test_merge_sort(unittest.TestCase):
+    def test_empty_list(self):
+        self.assertEqual(merge_sort([]), [])
+
+    def test_sorted_list(self):
+        sorted_list = [11, 24, 35, 36, 55]
+        self.assertEqual(merge_sort(sorted_list), sorted_list)
+
+    def test_reverse_sorted_list(self):
+        reverse_sorted_list = [55, 36, 35, 24, 11]
+        self.assertEqual(merge_sort(reverse_sorted_list), [11, 24, 35, 36, 55])
+
+    def test_random_list(self):
+        random_list = [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5]
+        self.assertEqual(merge_sort(random_list), [1, 1, 2, 3, 3, 4, 5, 5, 5, 6, 9])
+
+class test_calculate_score(unittest.TestCase):
+    def test_starting_position(self):
+        board = chess.Board()
+        self.assertEqual(calculate_score(), 0)
+
+class test_find_best_move(unittest.TestCase):
+    def not_null(self):
+        # Create a basic board position
+        board = chess.Board(fen='rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2')
+
+        # Test the find_best_move function
+        best_move = find_best_move(3)
+        
+        # Assert that the best move is not None
+        self.assertIsNotNone(best_move)
+
+        # Assert that the best move is a valid move
+        self.assertIn(best_move, board.legal_moves)
+    
+
+    def set_positions(self):
+        for position in test_data:
+            board.set_fen(position['fen'])
+            best_move = find_best_move(position['depth'])
+            self.assertEqual(str(best_move), position['solution'])
+
+def main(board):
+    bot_token = get_token("tokens.txt")
+    try:
+        depth = int(input("Welcome to Dillon Rahman's NEA.\nA chess engine written in Python. \nPlease enter the depth that will be used for the engine:\nReccomended depth: 3\n"))
+        if depth < 1:
+            print("Please enter a depth greater than 0.")
             exit()
-        while not board.is_game_over(claim_draw=True):
-            board = play(colour, game_id, bot_token, depth)
-        if(read_game_state(game_id, bot_token)['state']['status'] == "draw"):
-            print("Draw by " + str(read_game_state(game_id, bot_token)['state']['status']) + "in " + str(len(movehistory)) + " moves.")
-        else:
-            winner = read_game_state(game_id, bot_token)['state']['winner']
-            print("Checkmate by " + str(winner) + "in " + str(len(movehistory)) + " moves.")
-        pass
-    elif option == "4":
-        fen_string = input("Enter FEN string: ")
-        if load_Fen(fen_string):
-            print(board)
+        option = input("AI vs AI? (1): \nAI vs Human? (2):  \nLichess(3) \nLoad Position? (4):")
+        if option == "2":
             while not board.is_game_over(claim_draw=True):
                 if board.turn:
                     move = find_best_move(int(depth))
@@ -474,17 +547,52 @@ try:
                     move = board.push_san(move)
                     movehistory.append(move)
                     print("")
+                    #move = find_best_move(int(depth))
                 print(board)
-            print("Checkmate by " + str(board.result()) + " in " + str(len(movehistory)) + " moves.")
+            print("Checkmate by " + str(board.result()) + "in " + str(len(movehistory)) + " moves.")
             print(movehistory)
-    elif option == "5":
-        s = get_token("tokens.txt")
-        if s == bot_token:
-            print("Working")
-        print(opening_move("white"))
-        print(opening_move("black"))
-    else:
-        print("Invalid option.")
-except ValueError:
-    print("Please enter an integer.")
+        elif option == "3":
+            username = input("Enter your username: ")
+            game_id = input("Enter game ID: ")
+            colour = what_colour(read_game_state(game_id, bot_token), username)
+            if len(read_game_state(game_id, bot_token)['state']['moves'].split(" ")) > 1:
+                print("Game has already started. Please try another game ID")
+                exit()
+            while not board.is_game_over(claim_draw=True):
+                board = play(colour, game_id, bot_token, depth, board)
+            if(read_game_state(game_id, bot_token)['state']['status'] == "draw"):
+                print("Draw by " + str(read_game_state(game_id, bot_token)['state']['status']) + "in " + str(len(movehistory)) + " moves.")
+            else:
+                winner = read_game_state(game_id, bot_token)['state']['winner']
+                print("Checkmate by " + str(winner) + "in " + str(len(movehistory)) + " moves.")
+        elif option == "4":
+            fen_string = input("Enter FEN string: ")
+            board = chess.Board()
+            try: 
+                load_Fen(fen_string)
+                print(board)
+                while not board.is_game_over(claim_draw=True):
+                    if board.turn:
+                        move = find_best_move(int(depth))
+                        movehistory.append(move)
+                        board.push(move)
+                        print("\n" + str(move) + "\n")
+                    else:
+                        move = input("\nEnter your move: ")
+                        move = board.push_san(move)
+                        movehistory.append(move)
+                        print("")
+                    print(board)
+                print("Checkmate by " + str(board.result()) + "in " + str(len(movehistory)) + " moves.")
+                print(movehistory)
+            except:
+                print("Invalid FEN string.")
+        else:
+            print("Invalid option.")
+    except ValueError:
+        print("Please enter an integer.")
+
+if __name__ == "__main__":
+    unittest.main()
+    main(board)
 

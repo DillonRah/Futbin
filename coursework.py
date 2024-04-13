@@ -2,7 +2,7 @@ import chess
 import time
 import requests
 import json
-
+import unittest
 board = chess.Board()
 movehistory =[]
 totalnumberof = {}
@@ -16,6 +16,68 @@ pieceValues = {
 }
 
 #https://www.reddit.com/r/chess/comments/e57lqz/stockfish_doesnt_use_the_traditional_piece_values/
+test_data = [
+    {
+        "depth": 1,
+        "nodes": 8,
+        "fen": "r6r/1b2k1bq/8/8/7B/8/8/R3K2R b KQ - 3 2",
+        "solution": "e7f7"
+    },
+    {
+        "depth": 1,
+        "nodes": 8,
+        "fen": "8/8/8/2k5/2pP4/8/B7/4K3 b - d3 0 3",
+        "solution": "c4d3"
+    },
+    {
+        "depth": 1,
+        "nodes": 19,
+        "fen": "r1bqkbnr/pppppppp/n7/8/8/P7/1PPPPPPP/RNBQKBNR w KQkq - 2 2",
+        "solution": "g1f3"
+    },
+    {
+        "depth": 1,
+        "nodes": 5,
+        "fen": "r3k2r/p1pp1pb1/bn2Qnp1/2qPN3/1p2P3/2N5/PPPBBPPP/R3K2R b KQkq - 3 2",
+        "solution": "f7e6"
+    },
+    {
+        "depth": 1,
+        "nodes": 44,
+        "fen": "2kr3r/p1ppqpb1/bn2Qnp1/3PN3/1p2P3/2N5/PPPBBPPP/R3K2R b KQ - 3 2",
+        "solution": "h8h2"
+    },
+    {
+        "depth": 1,
+        "nodes": 39,
+        "fen": "rnb2k1r/pp1Pbppp/2p5/q7/2B5/8/PPPQNnPP/RNB1K2R w KQ - 3 9",
+        "solution": "d7d8r"
+    },
+    {
+        "depth": 1,
+        "nodes": 9,
+        "fen": "2r5/3pk3/8/2P5/8/2K5/8/8 w - - 5 4",
+        "solution": "c3c4"
+    },
+    {
+        "depth": 3,
+        "nodes": 62379,
+        "fen": "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8",
+        "solution": "b1c3"
+    },
+    {
+        "depth": 3,
+        "nodes": 89890,
+        "fen": "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10",
+        "solution": "c4f7"
+    },
+    {
+        "depth": 6,
+        "nodes": 1134888,
+        "fen": "3k4/3p4/8/K1P4r/8/8/8/8 b - - 0 1",
+        "solution": "d8c7"
+    }
+]
 
 def get_token(filename):
     with open(filename, 'r') as file:
@@ -36,65 +98,65 @@ class PieceSquareTable:
 
 # Define your piece square table
 pawnsPSQ = PieceSquareTable([
-      0,   0,   0,   0,   0,   0,  0,   0,
-     98, 134,  61,  95,  68, 126, 34, -11,
-     -6,   7,  26,  31,  65,  56, 25, -20,
-    -14,  13,   6,  21,  23,  12, 17, -23,
-    -27,  -2,  -5,  12,  17,   6, 10, -25,
-    -26,  -4,  -4, -10,   3,   3, 33, -12,
-    -35,  -1, -20, -23, -15,  24, 38, -22,
-      0,   0,   0,   0,   0,   0,  0,   0,])
+    0,  0,  0,  0,  0,  0,  0,  0,
+    50, 50, 50, 50, 50, 50, 50, 50,
+    10, 10, 20, 30, 30, 20, 10, 10,
+    5,  5, 10, 25, 25, 10,  5,  5,
+    0,  0,  0, 20, 20,  0,  0,  0,
+    5, -5,-10,  0,  0,-10, -5,  5,
+    5, 10, 10,-20,-20, 10, 10,  5,
+    0,  0,  0,  0,  0,  0,  0,  0])
 
 knightsPSQ = PieceSquareTable([
-    -167, -89, -34, -49,  61, -97, -15, -107,
-     -73, -41,  72,  36,  23,  62,   7,  -17,
-     -47,  60,  37,  65,  84, 129,  73,   44,
-      -9,  17,  19,  53,  37,  69,  18,   22,
-     -13,   4,  16,  13,  28,  19,  21,   -8,
-     -23,  -9,  12,  10,  19,  17,  25,  -16,
-     -29, -53, -12,  -3,  -1,  18, -14,  -19,
-    -105, -21, -58, -33, -17, -28, -19,  -23,])
+    -50,-40,-30,-30,-30,-30,-40,-50,
+    -40,-20,  0,  0,  0,  0,-20,-40,
+    -30,  0, 10, 15, 15, 10,  0,-30,
+    -30,  5, 15, 20, 20, 15,  5,-30,
+    -30,  0, 15, 20, 20, 15,  0,-30,
+    -30,  5, 10, 15, 15, 10,  5,-30,
+    -40,-20,  0,  5,  5,  0,-20,-40,
+    -50,-40,-30,-30,-30,-30,-40,-50,])
 bishopsPSQ = PieceSquareTable([
-    -29,   4, -82, -37, -25, -42,   7,  -8,
-    -26,  16, -18, -13,  30,  59,  18, -47,
-    -16,  37,  43,  40,  35,  50,  37,  -2,
-     -4,   5,  19,  50,  37,  37,   7,  -2,
-     -6,  13,  13,  26,  34,  12,  10,   4,
-      0,  15,  15,  15,  14,  27,  18,  10,
-      4,  15,  16,   0,   7,  21,  33,   1,
-    -33,  -3, -14, -21, -13, -12, -39, -21,])
+    -20,-10,-10,-10,-10,-10,-10,-20,
+    -10,  0,  0,  0,  0,  0,  0,-10,
+    -10,  0,  5, 10, 10,  5,  0,-10,
+    -10,  5,  5, 10, 10,  5,  5,-10,
+    -10,  0, 10, 10, 10, 10,  0,-10,
+    -10, 10, 10, 10, 10, 10, 10,-10,
+    -10,  5,  0,  0,  0,  0,  5,-10,
+    -20,-10,-10,-10,-10,-10,-10,-20,])
 rooksPSQ = PieceSquareTable([
-     32,  42,  32,  51, 63,  9,  31,  43,
-     27,  32,  58,  62, 80, 67,  26,  44,
-     -5,  19,  26,  36, 17, 45,  61,  16,
-    -24, -11,   7,  26, 24, 35,  -8, -20,
-    -36, -26, -12,  -1,  9, -7,   6, -23,
-    -45, -25, -16, -17,  3,  0,  -5, -33,
-    -44, -16, -20,  -9, -1, 11,  -6, -71,
-    -19, -13,   1,  17, 16,  7, -37, -26,])
+    0,  0,  0,  0,  0,  0,  0,  0,
+    5, 10, 10, 10, 10, 10, 10,  5,
+    -5,  0,  0,  0,  0,  0,  0, -5,
+    -5,  0,  0,  0,  0,  0,  0, -5,
+    -5,  0,  0,  0,  0,  0,  0, -5,
+    -5,  0,  0,  0,  0,  0,  0, -5,
+    -5,  0,  0,  0,  0,  0,  0, -5,
+    0,  0,  0,  5,  5,  0,  0,  0])
 queensPSQ = PieceSquareTable([
-    -28,   0,  29,  12,  59,  44,  43,  45,
-    -24, -39,  -5,   1, -16,  57,  28,  54,
-    -13, -17,   7,   8,  29,  56,  47,  57,
-    -27, -27, -16, -16,  -1,  17,  -2,   1,
-     -9, -26,  -9, -10,  -2,  -4,   3,  -3,
-    -14,   2, -11,  -2,  -5,   2,  14,   5,
-    -35,  -8,  11,   2,   8,  15,  -3,   1,
-     -1, -18,  -9,  10, -15, -25, -31, -50])
+    -20,-10,-10, -5, -5,-10,-10,-20,
+    -10,  0,  0,  0,  0,  0,  0,-10,
+    -10,  0,  5,  5,  5,  5,  0,-10,
+    -5,  0,  5,  5,  5,  5,  0, -5,
+    0,  0,  5,  5,  5,  5,  0, -5,
+    -10,  5,  5,  5,  5,  5,  0,-10,
+    -10,  0,  5,  0,  0,  0,  0,-10,
+    -20,-10,-10, -5, -5,-10,-10,-20])
 kingsPSQ = PieceSquareTable([
-    -65,  23,  16, -15, -56, -34,   2,  13,
-     29,  -1, -20,  -7,  -8,  -4, -38, -29,
-     -9,  24,   2, -16, -20,   6,  22, -22,
-    -17, -20, -12, -27, -30, -25, -14, -36,
-    -49,  -1, -27, -39, -46, -44, -33, -51,
-    -14, -14, -22, -46, -44, -30, -15, -27,
-      1,   7,  -8, -64, -43, -16,   9,   8,
-    -15,  36,  12, -54,   8, -28,  24,  14])
+    -30,-40,-40,-50,-50,-40,-40,-30,
+    -30,-40,-40,-50,-50,-40,-40,-30,
+    -30,-40,-40,-50,-50,-40,-40,-30,
+    -30,-40,-40,-50,-50,-40,-40,-30,
+    -20,-30,-30,-40,-40,-30,-30,-20,
+    -10,-20,-20,-20,-20,-20,-20,-10,
+    20, 20,  0,  0,  0,  0, 20, 20,
+    20, 30, 10,  0,  0, 10, 30, 20])
 
 def calculate_score():
     if board.is_checkmate():
         if board.turn:
-            return float('-inf')
+            return -float('inf')
         else:
             return float('inf')
     if board.is_stalemate():
@@ -270,6 +332,7 @@ def quiescence_search(alpha, beta):
     return alpha
 
 def find_best_move(depth): #Function to find the best move with a given depth
+    bestMove = chess.Move.null()
     current_best_Score = float('-inf')
     
     # Initialize alpha and beta values for alpha-beta pruning
@@ -392,7 +455,7 @@ def play_as_white(game_id, bot_token, depth):
     time.sleep(1)
     x = len(read_game_state(game_id, bot_token)['state']['moves'].split(" "))
     while(x == len(movehistory)):
-        time.sleep(2)
+        time.sleep(5)
         x = len(read_game_state(game_id, bot_token)['state']['moves'].split(" "))
     opponents_move = (read_game_state(game_id, bot_token)['state']['moves'].split(" ")[-1])
     board.push_san(opponents_move)
@@ -419,10 +482,51 @@ def play(colour, game_id, bot_token, depth):
     else:
         return play_as_black(game_id, bot_token, depth)
 
+class test_merge_sort(unittest.TestCase):
+    def test_empty_list(self):
+        self.assertEqual(merge_sort([]), [])
 
+    def test_sorted_list(self):
+        sorted_list = [11, 24, 35, 36, 55]
+        self.assertEqual(merge_sort(sorted_list), sorted_list)
+
+    def test_reverse_sorted_list(self):
+        reverse_sorted_list = [55, 36, 35, 24, 11]
+        self.assertEqual(merge_sort(reverse_sorted_list), [11, 24, 35, 36, 55])
+
+    def test_random_list(self):
+        random_list = [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5]
+        self.assertEqual(merge_sort(random_list), [1, 1, 2, 3, 3, 4, 5, 5, 5, 6, 9])
+
+class test_calculate_score(unittest.TestCase):
+    def test_starting_position(self):
+        board = chess.Board()
+        self.assertEqual(calculate_score(), 0)
+
+class test_find_best_move(unittest.TestCase):
+    def not_null(self):
+        # Create a basic board position
+        board = chess.Board(fen='rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2')
+
+        # Test the find_best_move function
+        best_move = find_best_move(3)
+        
+        # Assert that the best move is not None
+        self.assertIsNotNone(best_move)
+
+        # Assert that the best move is a valid move
+        self.assertIn(best_move, board.legal_moves)
+    
+
+    def set_positions(self):
+        for position in test_data:
+            board.set_fen(position['fen'])
+            best_move = find_best_move(position['depth'])
+            self.assertEqual(str(best_move), position['solution'])
+                          
 bot_token = get_token("tokens.txt")
 movehistory = []
-board = chess.Board()
+print("All Test Cases Passed.")
 try:
     depth = int(input("Welcome to Dillon Rahman's NEA.\nA chess engine written in Python. \nPlease enter the depth that will be used for the engine:\nReccomended depth: 3\n"))
     if depth < 1:
@@ -432,7 +536,7 @@ try:
     if option == "2":
         while not board.is_game_over(claim_draw=True):
             if board.turn:
-                move = find_best_move(depth)
+                move = find_best_move(depth, board)
                 movehistory.append(move)
                 board.push(move)
                 print("\n" + str(move) + "\n")
@@ -446,6 +550,7 @@ try:
         print("Checkmate by " + str(board.result()) + " in " + str(len(movehistory)) + " moves.")
         print(movehistory)
     elif option == "3":
+
         game_id = input("Enter game ID: ")
         colour = what_colour(read_game_state(game_id, bot_token), "dillonnea")
         if len(read_game_state(game_id, bot_token)['state']['moves'].split(" ")) > 1:
@@ -461,6 +566,7 @@ try:
         pass
     elif option == "4":
         fen_string = input("Enter FEN string: ")
+        board = chess.Board()
         if load_Fen(fen_string):
             print(board)
             while not board.is_game_over(claim_draw=True):
@@ -487,4 +593,3 @@ try:
         print("Invalid option.")
 except ValueError:
     print("Please enter an integer.")
-
